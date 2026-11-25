@@ -1,0 +1,52 @@
+{
+  "name": "@local/dsh-json-studio",
+  "version": "1.3.0",
+  "private": true,
+  "description": "JSON formatter panel for the Harness Web UI: tolerant JSON/JSON-like formatting, tree and table views, graceful pretty display of broken input, and OCR text extraction from images.",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./package.json": "./package.json",
+    "./locale/*.json": "./locale/*.json"
+  },
+  "icon": "./icon.svg",
+  "dependencies": {
+    "tesseract.js": "5.1.1"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-layout",
+        "@deepseek-ai/dsh-client-ui-renderer",
+        "@deepseek-ai/dsh-client-ui-sidebar"
+      ]
+    }
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "src/engine.js",
+    "src/ocr.js",
+    "src/ocr-worker.mjs",
+    "src/ui.js",
+    "build.mjs",
+    "assets/lang/*.traineddata.gz",
+    "locale/*.json",
+    "icon.svg",
+    "docs/*.png",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node --test test/engine.test.mjs test/engine.contract.test.mjs test/ocr.test.mjs"
+  }
+}

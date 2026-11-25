@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JSON Studio — dev lab</title>
+<style>
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: #12141a;
+    color: #e8eaed;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    --dsw-alias-bg-base: #12141a;
+    --dsw-alias-bg-layer-1: #181b22;
+    --dsw-alias-bg-layer-2: #1d2129;
+    --dsw-alias-bg-overlay: #232833;
+    --dsw-alias-border-l1: #2b303b;
+    --dsw-alias-border-l2: #3a4150;
+    --dsw-alias-brand-primary: #5b9dff;
+    --dsw-alias-label-primary: #e8eaed;
+    --dsw-alias-label-secondary: #98a2b3;
+    --dsw-alias-state-error-primary: #f87171;
+    --dsw-alias-state-success-primary: #4ade80;
+    --dsw-alias-state-warn-primary: #fbbf24;
+  }
+  body.light {
+    background: #f7f8fa; color: #1f2329;
+    --dsw-alias-bg-base: #ffffff;
+    --dsw-alias-bg-layer-1: #f4f5f7;
+    --dsw-alias-bg-layer-2: #f1f3f6;
+    --dsw-alias-bg-overlay: #ffffff;
+    --dsw-alias-border-l1: #e5e7eb;
+    --dsw-alias-border-l2: #d4d8de;
+    --dsw-alias-brand-primary: #3b82f6;
+    --dsw-alias-label-primary: #1f2329;
+    --dsw-alias-label-secondary: #6b7280;
+    --dsw-alias-state-error-primary: #dc2626;
+    --dsw-alias-state-success-primary: #16a34a;
+    --dsw-alias-state-warn-primary: #d97706;
+  }
+  #root { height: 100%; }
+  #lab-bar { position: fixed; right: 10px; bottom: 10px; z-index: 50; display: flex; gap: 6px; }
+  #lab-bar button { border: 1px solid #3a4150; background: #232833; color: #cbd5e1; border-radius: 999px; padding: 4px 10px; font-size: 11px; cursor: pointer; }
+  #lab-error { position: fixed; inset: auto 10px 10px 10px; background: #7f1d1d; color: #fff; padding: 10px 14px; border-radius: 10px; font: 12px/1.5 monospace; white-space: pre-wrap; display: none; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<div id="lab-bar">
+  <button id="lab-theme" type="button">toggle theme</button>
+  <button id="lab-sample" type="button">prose sample</button>
+  <button id="lab-broken" type="button">broken sample</button>
+  <button id="lab-ocr" type="button">ocr sample</button>
+  <button id="lab-settings" type="button">settings</button>
+</div>
+<div id="lab-error"></div>
+<script src="/json-studio/lab/react.js"></script>
+<script src="/json-studio/lab/react-dom.js"></script>
+<script>
+  window.__ModuleLoader__ = {
+    load(entry) {
+      window.__PLUGIN_ENTRY__ = entry
+      try {
+        window.__PLUGIN__ = entry.factory((name) => {
+          if (name === 'react') return window.React
+          throw new Error('unknown module: ' + name)
+        })
+      } catch (error) {
+        showError('factory failed: ' + (error && error.stack ? error.stack : error))
+      }
+    },
+  }
+  window.__LAB_DICTS__ = null
+  function showError(text) {
+    const el = document.getElementById('lab-error')
+    el.style.display = 'block'
+    el.textContent += text + '\n'
+  }
+  window.addEventListener('error', (event) => showError('window error: ' + event.message))
+  window.addEventListener('unhandledrejection', (event) => showError('unhandled: ' + (event.reason && event.reason.stack ? event.reason.stack : event.reason)))
+</script>
+<script src="/json-studio/lab/client.js"></script>
+<script>
+  (function boot() {
+    const plugin = window.__PLUGIN__
+    if (!plugin || typeof plugin.apply !== 'function') { showError('client bundle did not expose apply()'); return }
+    const ctx = {
+      effect(fn) { try { fn() } catch (error) { showError('effect failed: ' + (error && error.stack ? error.stack : error)) } return () => {} },
+      slots: {
+        inject(key, callback) { try { callback() } catch (error) { showError('inject ' + key + ' failed: ' + (error && error.stack ? error.stack : error)) } return () => {} },
+        register(options, component) {
+          if (options && options.name === 'main') window.__PANEL_COMPONENT__ = component
+          if (options && options.name === 'settings.section') window.__SETTINGS_COMPONENT__ = component
+          return () => {}
+        },
+      },
+      locale: {
+        bind() {
+          return (key) => {
+            const all = window.__LAB_DICTS__ || {}
+            const dict = all.zh || all.en || {}
+            return dict[key] || key
+          }
+        },
+        register(ns, dicts) { window.__LAB_DICTS__ = dicts; return () => {} },
+      },
+    }
+    plugin.apply(ctx)
+    const component = window.__PANEL_COMPONENT__
+    if (typeof component !== 'function') { showError('panel component not registered'); return }
+    const dicts = window.__LAB_DICTS__ || {}
+    const dict = dicts.zh || dicts.en || {}
+    const t = (key) => dict[key] || key
+    const panel = window.__PANEL_COMPONENT__
+    const settings = window.__SETTINGS_COMPONENT__
+    const root = ReactDOM.createRoot(document.getElementById('root'))
+    let view = 'panel'
+    const render = () => {
+      const component = view === 'settings' && settings ? settings : panel
+      root.render(React.createElement(component, { t, close() {} }))
+    }
+    render()
+    document.getElementById('lab-settings').addEventListener('click', () => {
+      view = view === 'panel' ? 'settings' : 'panel'
+      render()
+    })
+    const area = () => document.querySelector('textarea.jst-input')
+    const setValue = (value) => {
+      const el = area()
+      if (!el) return
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set
+      setter.call(el, value)
+      el.dispatchEvent(new Event('input', { bubbles: true }))
+    }
+    document.getElementById('lab-theme').addEventListener('click', () => document.body.classList.toggle('light'))
+    document.getElementById('lab-sample').addEventListener('click', () => setValue('The response was {"ok": true, "count": 2} as expected.'))
+    document.getElementById('lab-broken').addEventListener('click', () => setValue('{"users": [{"id": 1, "name": "Ada", "tags": ["math" "logic"]}, {"id": 2, "name": "Alan", "tags": ["crypto"]},], "total": 2'))
+    document.getElementById('lab-ocr').addEventListener('click', async () => {
+      const response = await fetch('/json-studio/lab/ocr-sample.png')
+      const blob = await response.blob()
+      const file = new File([blob], 'ocr-sample.png', { type: 'image/png' })
+      const transfer = new DataTransfer()
+      transfer.items.add(file)
+      const target = document.querySelector('.jst-root')
+      if (target) target.dispatchEvent(new DragEvent('drop', { dataTransfer: transfer, bubbles: true, cancelable: true }))
+    })
+  })()
+</script>
+</body>
+</html>

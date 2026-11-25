@@ -1,0 +1,7 @@
+﻿JSON Studio - full source export
+Package : @local/dsh-json-studio
+Version : 1.3.0
+Exported: 2026-11-25 17:36:24 +08:00
+Source  : E:\selfwork\json-studio
+Shape   : complete plugin directory (source, built client.js, OCR models, tests, docs, dev scripts)
+Install : plugin_manager install_bundle target=<extracted>\json-studio

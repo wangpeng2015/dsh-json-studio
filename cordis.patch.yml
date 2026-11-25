@@ -1,0 +1,15 @@
+﻿# The JSON Studio bundle patch: one host row owns the browser route that the
+# panel uses for OCR, plus the client module that draws the panel itself.
+- insert:
+    - id: json-studio
+      name: '@local/dsh-json-studio'
+      config:
+        maxImageBytes: 12582912
+        ocrLangs: eng
+        shortcut: Ctrl+Alt+J
+        watchClientBundle: true
+        devLab: false
+
+
+
+
